@@ -4,6 +4,8 @@ import gl "vendor:OpenGL"
 import "core:os"
 import "core:fmt"
 import "core:strings"
+import "core:runtime"
+import "core:intrinsics"
 
 GL_MAJOR_VERSION :: 4
 GL_MINOR_VERSION :: 6
@@ -95,12 +97,18 @@ main :: proc() {
 
 	shaders := make_shaders()
 	gl.UseProgram(shaders)
+	// Callback Based Error handling, OpenGL 4.3+ Only
+	// gl.DebugMessageCallback(debug_proc_t, nil)
 
 	for !glfw.WindowShouldClose(window) {
 		/* Render here */
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
+		// C uses macro, Odin manually wraps fn:
+		gl_clear_errors()
+		gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.INT, nil) // intentional error:gl.UNSIGNED_INT to int
+		err_code, ok := gl_check_error()
+		dbg_assert(ok)
 
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
@@ -108,4 +116,23 @@ main :: proc() {
 
 	gl.DeleteProgram(shaders)
 
+}
+
+debug_proc_t :: proc "c" (source: u32, type: u32, id: u32, severity: u32, length: i32, message: cstring, userParam: rawptr) {
+	context = runtime.default_context()
+	fmt.println("debug_proc_t", source, type, id, severity, length, message, userParam)
+}
+
+gl_clear_errors :: proc() {
+	for do if gl.GetError() == gl.NO_ERROR do return
+}
+gl_check_error :: proc() -> (code: u32, ok: bool) {
+	err_code := gl.GetError()
+	if err_code == gl.NO_ERROR {
+		return 0, true
+	} else {return err_code, false}
+}
+
+dbg_assert :: #force_inline proc(flag: bool) {
+	if !flag do intrinsics.debug_trap()
 }
