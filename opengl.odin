@@ -7,8 +7,8 @@ import "core:strings"
 import "core:runtime"
 import "core:intrinsics"
 
-GL_MAJOR_VERSION :: 4
-GL_MINOR_VERSION :: 6
+GL_MAJOR_VERSION :: 3
+GL_MINOR_VERSION :: 3
 
 init_glfw :: proc() -> glfw.WindowHandle {
 	if glfw.Init() == 0 {
@@ -19,6 +19,11 @@ init_glfw :: proc() -> glfw.WindowHandle {
 		glfw.Terminate()
 		os.exit(1)
 	}
+	// odin ignores these..?
+	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
+	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
+	glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE) // compat makes vtx buf for you, core does not
+
 	glfw.MakeContextCurrent(window)
 	glfw.SwapInterval(1) // v-sync
 	gl.load_up_to(GL_MAJOR_VERSION, GL_MINOR_VERSION, glfw.gl_set_proc_address)
@@ -58,9 +63,6 @@ compile_shader :: proc(type: u32, src: string) -> u32 {
 	return id
 }
 
-vertex_shader :: string(#load("./vertex.glsl"))
-fragment_shader :: string(#load("./fragment.glsl"))
-
 make_shaders :: proc() -> u32 {
 	program := gl.CreateProgram()
 	vs := compile_shader(gl.VERTEX_SHADER, vertex_shader)
@@ -84,17 +86,16 @@ main :: proc() {
 	positions := []f32{-0.4, -0.5, 0.4, -0.5, 0.4, 0.5, -0.4, 0.5}
 	indices := []u32{0, 1, 2, 2, 3, 0}
 
-	buf_id: u32
-	gl.GenBuffers(1, &buf_id)
-	gl.BindBuffer(gl.ARRAY_BUFFER, buf_id)
+	vao: u32
+	gl.GenVertexArrays(1, &vao)
+	gl.BindVertexArray(vao)
+
+	vb := make_vertex_buffer(positions)
+
 	gl.VertexAttribPointer(0, 2, gl.FLOAT, false, size_of(f32) * 2, 0) //https://docs.gl/gl4/glVertexAttribPointer
 	gl.EnableVertexAttribArray(0)
-	gl.BufferData(gl.ARRAY_BUFFER, len(positions) * size_of(f32), transmute([^]f32)raw_data(positions), gl.STATIC_DRAW)
 
-	idx_buf_id: u32
-	gl.GenBuffers(1, &idx_buf_id)
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, idx_buf_id)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(positions) * size_of(u32), transmute([^]u32)raw_data(indices), gl.STATIC_DRAW)
+	ib := make_index_buffer(indices)
 
 	shaders := make_shaders()
 	gl.UseProgram(shaders)
@@ -106,12 +107,18 @@ main :: proc() {
 	// Callback Based Error handling, OpenGL 4.3+ Only
 	// gl.DebugMessageCallback(debug_proc_t, nil)
 
+	//clears the state:
+	gl.BindVertexArray(0)
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0)
+	gl.UseProgram(0)
+
 	r: f32 = 0.
 	add := true
-
 	for !glfw.WindowShouldClose(window) {
 		/* Render here */
 		gl.Clear(gl.COLOR_BUFFER_BIT)
+
 		step: f32 = 0.005
 		r += add ? step : -1 * step
 		if r >= 1. {
@@ -121,7 +128,10 @@ main :: proc() {
 			r = 0.
 			add = true
 		}
+		gl.UseProgram(shaders)
 		gl.Uniform4f(location, r, 0.3, 0.8, 1.)
+		gl.BindVertexArray(vao)
+		ib->bind()
 
 		// C uses macro, Odin manually wraps fn:
 		gl_clear_errors()
