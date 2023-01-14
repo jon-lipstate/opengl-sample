@@ -78,13 +78,20 @@ main :: proc() {
 	defer destroy_glfw(window)
 
 	// make a vertex buffer:
-	positions := []f32{-0.4, -0.5, 0.0, 0.5, 0.4, -0.5}
+	positions := []f32{-0.4, -0.5, 0.4, -0.5, 0.4, 0.5, -0.4, 0.5}
+	indices := []u32{0, 1, 2, 2, 3, 0}
+
 	buf_id: u32
 	gl.GenBuffers(1, &buf_id)
 	gl.BindBuffer(gl.ARRAY_BUFFER, buf_id)
 	gl.VertexAttribPointer(0, 2, gl.FLOAT, false, size_of(f32) * 2, 0) //https://docs.gl/gl4/glVertexAttribPointer
 	gl.EnableVertexAttribArray(0)
 	gl.BufferData(gl.ARRAY_BUFFER, len(positions) * size_of(f32), transmute([^]f32)raw_data(positions), gl.STATIC_DRAW)
+
+	idx_buf_id: u32
+	gl.GenBuffers(1, &idx_buf_id)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, idx_buf_id)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(positions) * size_of(u32), transmute([^]u32)raw_data(indices), gl.STATIC_DRAW)
 
 	shaders := make_shaders()
 	gl.UseProgram(shaders)
@@ -93,7 +100,7 @@ main :: proc() {
 		/* Render here */
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		gl.DrawArrays(GL_TRIANGLES, 0, 3)
+		gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
