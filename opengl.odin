@@ -20,6 +20,7 @@ init_glfw :: proc() -> glfw.WindowHandle {
 		os.exit(1)
 	}
 	glfw.MakeContextCurrent(window)
+	glfw.SwapInterval(1) // v-sync
 	gl.load_up_to(GL_MAJOR_VERSION, GL_MINOR_VERSION, glfw.gl_set_proc_address)
 	fmt.println(gl.GetString(GL_VERSION))
 	fmt.println(gl.GetString(GL_RENDERER))
@@ -97,16 +98,34 @@ main :: proc() {
 
 	shaders := make_shaders()
 	gl.UseProgram(shaders)
+
+	location := gl.GetUniformLocation(shaders, "u_Color")
+	assert(location != -1) // -1 is it is removed
+	gl.Uniform4f(location, 0.2, 0.3, 0.8, 1.)
+
 	// Callback Based Error handling, OpenGL 4.3+ Only
 	// gl.DebugMessageCallback(debug_proc_t, nil)
+
+	r: f32 = 0.
+	add := true
 
 	for !glfw.WindowShouldClose(window) {
 		/* Render here */
 		gl.Clear(gl.COLOR_BUFFER_BIT)
+		step: f32 = 0.005
+		r += add ? step : -1 * step
+		if r >= 1. {
+			r = 1.
+			add = false
+		} else if r <= 0 {
+			r = 0.
+			add = true
+		}
+		gl.Uniform4f(location, r, 0.3, 0.8, 1.)
 
 		// C uses macro, Odin manually wraps fn:
 		gl_clear_errors()
-		gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.INT, nil) // intentional error:gl.UNSIGNED_INT to int
+		gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 		err_code, ok := gl_check_error()
 		dbg_assert(ok)
 
