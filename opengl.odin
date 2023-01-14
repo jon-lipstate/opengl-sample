@@ -86,11 +86,11 @@ main :: proc() {
 	positions := []f32{-0.4, -0.5, 0.4, -0.5, 0.4, 0.5, -0.4, 0.5}
 	indices := []u32{0, 1, 2, 2, 3, 0}
 
-	vao: u32
-	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
-
+	va := make_vertex_array()
 	vb := make_vertex_buffer(positions)
+	vl := make_vertex_layout()
+	vl->push_type(f32, 2, false)
+	va->add_buffer(&vb, &vl)
 
 	gl.VertexAttribPointer(0, 2, gl.FLOAT, false, size_of(f32) * 2, 0) //https://docs.gl/gl4/glVertexAttribPointer
 	gl.EnableVertexAttribArray(0)
@@ -130,7 +130,7 @@ main :: proc() {
 		}
 		gl.UseProgram(shaders)
 		gl.Uniform4f(location, r, 0.3, 0.8, 1.)
-		gl.BindVertexArray(vao)
+		va->bind()
 		ib->bind()
 
 		// C uses macro, Odin manually wraps fn:
