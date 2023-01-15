@@ -2,8 +2,10 @@ package opengl
 import "vendor:glfw"
 import gl "vendor:OpenGL"
 import "core:strings"
+import "core:intrinsics"
 import "core:os"
 import "core:fmt"
+import "vendor:stb/image"
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 vertex_shader :: string(#load("./vertex.glsl"))
 fragment_shader :: string(#load("./fragment.glsl"))
@@ -195,6 +197,14 @@ make_shader_program :: proc() -> Shader_Program {
 
 	return sp
 }
+set_uniform1i :: proc(sp: ^Shader_Program, name: string, v: i32) {
+	loc := get_uniform_location(sp, name)
+	gl.Uniform1i(loc, v)
+}
+set_uniform1f :: proc(sp: ^Shader_Program, name: string, v: f32) {
+	loc := get_uniform_location(sp, name)
+	gl.Uniform1f(loc, v)
+}
 set_uniform4f :: proc(sp: ^Shader_Program, name: string, v: [4]f32) {
 	loc := get_uniform_location(sp, name)
 	gl.Uniform4f(loc, v.x, v.y, v.z, v.w)
@@ -206,7 +216,7 @@ get_uniform_location :: proc(sp: ^Shader_Program, name: string) -> i32 {
 		cstr := strings.clone_to_cstring(name, context.temp_allocator)
 		loc := gl.GetUniformLocation(sp.id, cstr)
 		if loc == -1 {
-			fmt.println("Location not assigned (-1)")
+			fmt.println("Location not assigned (-1)", name)
 		}
 		sp.locations[name] = loc
 	}
@@ -233,10 +243,79 @@ compile_shader :: proc(type: u32, src: string) -> u32 {
 			shader_type = "FRAGMENT_SHADER"
 		}
 		fmt.println("FAILED TO COMPILE SHADER:", shader_type)
-		fmt.println(buf)
+		fmt.println(string(buf))
 		gl.DeleteShader(id)
+		intrinsics.debug_trap()
 		return 0
 	}
 
 	return id
+}
+//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
+Renderer :: struct {}
+
+draw :: proc(renderer: ^Renderer, va: ^Vertex_Array, ib: ^Index_Buffer, shader: ^Shader_Program) {
+	shader->bind()
+	va->bind()
+	ib->bind()
+	// C uses macro, Odin manually wraps fn:
+	gl_clear_errors()
+	gl.DrawElements(gl.TRIANGLES, i32(ib.count), gl.UNSIGNED_INT, nil)
+	err_code, ok := gl_check_error()
+	dbg_assert(ok)
+}
+clear :: proc(renderer: ^Renderer) {
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+
+}
+//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
+@(deferred_out = delete) // dont think this works..?
+Texture :: struct {
+	id:     u32,
+	path:   string,
+	buf:    [^]u8,
+	width:  i32,
+	height: i32,
+	bpp:    i32, //bits per pixel
+	// slot:   i32, // why no add??
+	bind:   proc(this: ^Texture, slot: u32 = 0),
+	unbind: proc(this: ^Texture),
+	delete: proc(this: ^Texture),
+}
+make_texture :: proc(path: string) -> Texture {
+	tex := Texture{}
+	tex.path = path
+
+	image.set_flip_vertically_on_load(1)
+	cstr := strings.clone_to_cstring(path, context.temp_allocator)
+	tex.buf = image.load(cstr, &tex.width, &tex.height, &tex.bpp, 4)
+
+	gl.GenTextures(1, &tex.id)
+	gl.BindTexture(gl.TEXTURE_2D, tex.id)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, tex.width, tex.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, tex.buf)
+	//
+	unbind :: proc(this: ^Texture) {
+		gl.BindTexture(gl.TEXTURE_2D, 0)
+	}
+	bind :: proc(this: ^Texture, slot: u32 = 0) {
+		gl.ActiveTexture(gl.TEXTURE0 + slot)
+		gl.BindTexture(gl.TEXTURE_2D, this.id)
+	}
+	delete :: proc(this: ^Texture) {
+		gl.DeleteTextures(1, &this.id)
+	}
+	tex.unbind = unbind
+	tex.bind = bind
+	//
+	tex->unbind()
+	// if tex.buf != nil {
+	// 	image.image_free(tex.buf)
+	// }
+	return tex
 }

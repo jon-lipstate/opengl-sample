@@ -41,38 +41,44 @@ main :: proc() {
 	defer destroy_glfw(window)
 
 	// make a vertex buffer:
-	positions := []f32{-0.4, -0.5, 0.4, -0.5, 0.4, 0.5, -0.4, 0.5}
+	positions := []f32{-0.4, -0.5, 0., 0., 0.4, -0.5, 1., 0., 0.4, 0.5, 1., 1., -0.4, 0.5, 0., 1.}
 	indices := []u32{0, 1, 2, 2, 3, 0}
+
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
 	va := make_vertex_array()
 	vb := make_vertex_buffer(positions)
 	vl := make_vertex_layout()
 	vl->push_type(f32, 2, false)
+	vl->push_type(f32, 2, false)
 	va->add_buffer(&vb, &vl)
 
-	gl.VertexAttribPointer(0, 2, gl.FLOAT, false, size_of(f32) * 2, 0) //https://docs.gl/gl4/glVertexAttribPointer
-	gl.EnableVertexAttribArray(0)
+	// gl.VertexAttribPointer(0, 2, gl.FLOAT, false, size_of(f32) * 2, 0) //https://docs.gl/gl4/glVertexAttribPointer
+	// gl.EnableVertexAttribArray(0)
 
 	ib := make_index_buffer(indices)
 
-	shader_program := make_shader_program()
-
-	set_uniform4f(&shader_program, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.})
+	shader := make_shader_program()
+	set_uniform4f(&shader, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.})
 
 	// Callback Based Error handling, OpenGL 4.3+ Only
 	// gl.DebugMessageCallback(debug_proc_t, nil)
+
+	texture := make_texture("./ChernoLogo.png")
+	texture->bind()
+	set_uniform1i(&shader, "u_Texture", 0)
 
 	//clears the state (debug / demo use only...?):
 	va->unbind()
 	vb->unbind()
 	ib->unbind()
-	shader_program->unbind()
+	shader->unbind()
 
 	r: f32 = 0.
 	add := true
 	for !glfw.WindowShouldClose(window) {
-		/* Render here */
-		gl.Clear(gl.COLOR_BUFFER_BIT)
+		clear(nil)
 
 		step: f32 = 0.005
 		r += add ? step : -1 * step
@@ -83,22 +89,15 @@ main :: proc() {
 			r = 0.
 			add = true
 		}
-		shader_program->bind()
-		set_uniform4f(&shader_program, "u_Color", [4]f32{r, 0.3, 0.8, 1.})
-		va->bind()
-		ib->bind()
+		set_uniform4f(&shader, "u_Color", [4]f32{r, 0.3, 0.8, 1.})
 
-		// C uses macro, Odin manually wraps fn:
-		gl_clear_errors()
-		gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
-		err_code, ok := gl_check_error()
-		dbg_assert(ok)
+		draw(nil, &va, &ib, &shader)
 
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
 	}
 
-	gl.DeleteProgram(shader_program.id)
+	gl.DeleteProgram(shader.id)
 
 }
 
