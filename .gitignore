@@ -2,6 +2,7 @@
 /target
 scratch*
 /out
+/.vscode
 
 *.lib
 *.obj
@@ -14,5 +15,3 @@ scratch*
 *.hha
 *.hmi
 *.rdbg
-
-odin_debug.rdbg

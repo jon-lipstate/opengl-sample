@@ -201,7 +201,6 @@ make_shader_program :: proc() -> Shader_Program {
 }
 set_uniform1i :: proc(sp: ^Shader_Program, name: string, v: i32) {
 	loc := get_uniform_location(sp, name)
-	fmt.println("set_uniform1i", name, loc, v)
 	gl.Uniform1i(loc, v)
 }
 set_uniform1f :: proc(sp: ^Shader_Program, name: string, v: f32) {
@@ -215,6 +214,7 @@ set_uniform4f :: proc(sp: ^Shader_Program, name: string, v: [4]f32) {
 set_uniform_mat4f :: proc(sp: ^Shader_Program, name: string, mat: ^glm.mat4) {
 	loc := get_uniform_location(sp, name)
 	m := transmute([^]f32)mat
+
 	// for i := 0; i < 16; i += 1 {
 	// 	if i % 4 == 0 do fmt.printf("\n")
 	// 	fmt.printf("%.2f ", m[i])
@@ -228,15 +228,15 @@ get_uniform_location :: proc(sp: ^Shader_Program, name: string) -> i32 {
 
 	if !ok {
 		cstr := strings.clone_to_cstring(name, context.temp_allocator)
-		loc := gl.GetUniformLocation(sp.id, cstr)
+		loc = gl.GetUniformLocation(sp.id, cstr)
 		if loc == -1 {
 			fmt.println("Location not assigned (-1)", name)
 		}
 		sp.locations[name] = loc
 	}
-	for k, v in sp.locations {
-		fmt.println(k, v)
-	}
+	// for k, v in sp.locations {
+	// 	fmt.println(k, v)
+	// }
 	return loc
 }
 
@@ -285,7 +285,6 @@ clear :: proc(renderer: ^Renderer) {
 
 }
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
-@(deferred_out = delete) // dont think this works..?
 Texture :: struct {
 	id:     u32,
 	path:   string,

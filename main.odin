@@ -56,7 +56,7 @@ main :: proc() {
 	va->add_buffer(&vb, &vl)
 	ib := make_index_buffer(indices)
 
-	proj := glm.mat4Ortho3d(-2, 2, -1.5, 1.5, 1., 1.)
+	proj := glm.mat4Ortho3d(-2, 2, -1.5, 1.5, -1., 1.)
 
 	shader := make_shader_program()
 
