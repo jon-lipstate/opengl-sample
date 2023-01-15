@@ -5,6 +5,7 @@ import "core:os"
 import "core:fmt"
 import "core:runtime"
 import "core:intrinsics"
+import glm "core:math/linalg/glsl"
 
 GL_MAJOR_VERSION :: 3
 GL_MINOR_VERSION :: 3
@@ -53,14 +54,13 @@ main :: proc() {
 	vl->push_type(f32, 2, false)
 	vl->push_type(f32, 2, false)
 	va->add_buffer(&vb, &vl)
-
-	// gl.VertexAttribPointer(0, 2, gl.FLOAT, false, size_of(f32) * 2, 0) //https://docs.gl/gl4/glVertexAttribPointer
-	// gl.EnableVertexAttribArray(0)
-
 	ib := make_index_buffer(indices)
 
+	proj := glm.mat4Ortho3d(-2, 2, -1.5, 1.5, 1., 1.)
+
 	shader := make_shader_program()
-	set_uniform4f(&shader, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.})
+
+	set_uniform_mat4f(&shader, "u_MVP", &proj)
 
 	// Callback Based Error handling, OpenGL 4.3+ Only
 	// gl.DebugMessageCallback(debug_proc_t, nil)
@@ -68,6 +68,9 @@ main :: proc() {
 	texture := make_texture("./ChernoLogo.png")
 	texture->bind()
 	set_uniform1i(&shader, "u_Texture", 0)
+	// gl.UniformMatrix4fv(get_uniform_location(&shader, "u_MVP"), 1, false, transmute([^]f32)&proj)
+
+	// set_uniform4f(&shader, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.})
 
 	//clears the state (debug / demo use only...?):
 	va->unbind()
@@ -89,7 +92,7 @@ main :: proc() {
 			r = 0.
 			add = true
 		}
-		set_uniform4f(&shader, "u_Color", [4]f32{r, 0.3, 0.8, 1.})
+		// set_uniform4f(&shader, "u_Color", [4]f32{r, 0.3, 0.8, 1.})
 
 		draw(nil, &va, &ib, &shader)
 

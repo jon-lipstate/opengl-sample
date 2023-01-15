@@ -6,6 +6,8 @@ import "core:intrinsics"
 import "core:os"
 import "core:fmt"
 import "vendor:stb/image"
+import glm "core:math/linalg/glsl"
+
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 vertex_shader :: string(#load("./vertex.glsl"))
 fragment_shader :: string(#load("./fragment.glsl"))
@@ -199,6 +201,7 @@ make_shader_program :: proc() -> Shader_Program {
 }
 set_uniform1i :: proc(sp: ^Shader_Program, name: string, v: i32) {
 	loc := get_uniform_location(sp, name)
+	fmt.println("set_uniform1i", name, loc, v)
 	gl.Uniform1i(loc, v)
 }
 set_uniform1f :: proc(sp: ^Shader_Program, name: string, v: f32) {
@@ -208,6 +211,17 @@ set_uniform1f :: proc(sp: ^Shader_Program, name: string, v: f32) {
 set_uniform4f :: proc(sp: ^Shader_Program, name: string, v: [4]f32) {
 	loc := get_uniform_location(sp, name)
 	gl.Uniform4f(loc, v.x, v.y, v.z, v.w)
+}
+set_uniform_mat4f :: proc(sp: ^Shader_Program, name: string, mat: ^glm.mat4) {
+	loc := get_uniform_location(sp, name)
+	m := transmute([^]f32)mat
+	// for i := 0; i < 16; i += 1 {
+	// 	if i % 4 == 0 do fmt.printf("\n")
+	// 	fmt.printf("%.2f ", m[i])
+	// }
+	// fmt.println("\n")
+
+	gl.UniformMatrix4fv(loc, 1, false, m)
 }
 get_uniform_location :: proc(sp: ^Shader_Program, name: string) -> i32 {
 	loc, ok := sp.locations[name]
@@ -220,7 +234,9 @@ get_uniform_location :: proc(sp: ^Shader_Program, name: string) -> i32 {
 		}
 		sp.locations[name] = loc
 	}
-
+	for k, v in sp.locations {
+		fmt.println(k, v)
+	}
 	return loc
 }
 
