@@ -3,7 +3,6 @@ import "vendor:glfw"
 import gl "vendor:OpenGL"
 import "core:os"
 import "core:fmt"
-import "core:strings"
 import "core:runtime"
 import "core:intrinsics"
 
@@ -36,47 +35,6 @@ destroy_glfw :: proc(window: glfw.WindowHandle) {
 	glfw.DestroyWindow(window)
 	glfw.Terminate()
 }
-compile_shader :: proc(type: u32, src: string) -> u32 {
-	id := gl.CreateShader(type)
-	cstr := strings.clone_to_cstring(src, context.temp_allocator)
-	gl.ShaderSource(id, 1, &cstr, nil)
-	gl.CompileShader(id)
-
-	res: i32
-	gl.GetShaderiv(id, gl.COMPILE_STATUS, &res)
-	if res == 0 {
-		length: i32
-		gl.GetShaderiv(id, gl.INFO_LOG_LENGTH, &length)
-		buf := make([]u8, length * size_of(u8))
-		defer delete(buf)
-		gl.GetShaderInfoLog(id, length, &length, raw_data(buf))
-		shader_type := "VERTEX_SHADER"
-		if type == gl.FRAGMENT_SHADER {
-			shader_type = "FRAGMENT_SHADER"
-		}
-		fmt.println("FAILED TO COMPILE SHADER:", shader_type)
-		fmt.println(buf)
-		gl.DeleteShader(id)
-		return 0
-	}
-
-	return id
-}
-
-make_shaders :: proc() -> u32 {
-	program := gl.CreateProgram()
-	vs := compile_shader(gl.VERTEX_SHADER, vertex_shader)
-	fs := compile_shader(gl.FRAGMENT_SHADER, fragment_shader)
-	gl.AttachShader(program, vs)
-	gl.AttachShader(program, fs)
-	gl.LinkProgram(program)
-	gl.ValidateProgram(program)
-
-	gl.DeleteShader(vs)
-	gl.DeleteShader(fs)
-
-	return program
-}
 
 main :: proc() {
 	window := init_glfw()
@@ -97,21 +55,18 @@ main :: proc() {
 
 	ib := make_index_buffer(indices)
 
-	shaders := make_shaders()
-	gl.UseProgram(shaders)
+	shader_program := make_shader_program()
 
-	location := gl.GetUniformLocation(shaders, "u_Color")
-	assert(location != -1) // -1 is it is removed
-	gl.Uniform4f(location, 0.2, 0.3, 0.8, 1.)
+	set_uniform4f(&shader_program, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.})
 
 	// Callback Based Error handling, OpenGL 4.3+ Only
 	// gl.DebugMessageCallback(debug_proc_t, nil)
 
-	//clears the state:
-	gl.BindVertexArray(0)
-	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0)
-	gl.UseProgram(0)
+	//clears the state (debug / demo use only...?):
+	va->unbind()
+	vb->unbind()
+	ib->unbind()
+	shader_program->unbind()
 
 	r: f32 = 0.
 	add := true
@@ -128,8 +83,8 @@ main :: proc() {
 			r = 0.
 			add = true
 		}
-		gl.UseProgram(shaders)
-		gl.Uniform4f(location, r, 0.3, 0.8, 1.)
+		shader_program->bind()
+		set_uniform4f(&shader_program, "u_Color", [4]f32{r, 0.3, 0.8, 1.})
 		va->bind()
 		ib->bind()
 
@@ -143,7 +98,7 @@ main :: proc() {
 		glfw.PollEvents()
 	}
 
-	gl.DeleteProgram(shaders)
+	gl.DeleteProgram(shader_program.id)
 
 }
 

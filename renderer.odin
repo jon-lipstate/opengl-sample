@@ -1,10 +1,14 @@
 package opengl
 import "vendor:glfw"
 import gl "vendor:OpenGL"
+import "core:strings"
+import "core:os"
+import "core:fmt"
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 vertex_shader :: string(#load("./vertex.glsl"))
 fragment_shader :: string(#load("./fragment.glsl"))
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
+// TODO: move fn ptrs to overloads (eg delete::proc{del_vtx,...})
 Vertex_Buffer_Element :: struct {
 	// EX: gl.FLOAT
 	type:          u32,
@@ -156,4 +160,83 @@ get_size_of_type :: proc(type: u32) -> int {
 	case:
 		panic("unsupported type")
 	}
+}
+//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
+Shader_Program :: struct {
+	id:        u32,
+	locations: map[string]i32,
+	bind:      proc(this: ^Shader_Program),
+	unbind:    proc(this: ^Shader_Program),
+}
+make_shader_program :: proc() -> Shader_Program {
+	sp := Shader_Program{}
+	sp.locations = {}
+	sp.id = gl.CreateProgram()
+	vs := compile_shader(gl.VERTEX_SHADER, vertex_shader)
+	fs := compile_shader(gl.FRAGMENT_SHADER, fragment_shader)
+	gl.AttachShader(sp.id, vs)
+	gl.AttachShader(sp.id, fs)
+	gl.LinkProgram(sp.id)
+	gl.ValidateProgram(sp.id)
+
+	gl.DeleteShader(vs)
+	gl.DeleteShader(fs)
+
+	bind :: proc(sp: ^Shader_Program) {
+		gl.UseProgram(sp.id)
+	}
+	unbind :: proc(sp: ^Shader_Program) {
+		gl.UseProgram(0)
+	}
+	sp.bind = bind
+	sp.unbind = unbind
+
+	sp->bind()
+
+	return sp
+}
+set_uniform4f :: proc(sp: ^Shader_Program, name: string, v: [4]f32) {
+	loc := get_uniform_location(sp, name)
+	gl.Uniform4f(loc, v.x, v.y, v.z, v.w)
+}
+get_uniform_location :: proc(sp: ^Shader_Program, name: string) -> i32 {
+	loc, ok := sp.locations[name]
+
+	if !ok {
+		cstr := strings.clone_to_cstring(name, context.temp_allocator)
+		loc := gl.GetUniformLocation(sp.id, cstr)
+		if loc == -1 {
+			fmt.println("Location not assigned (-1)")
+		}
+		sp.locations[name] = loc
+	}
+
+	return loc
+}
+
+compile_shader :: proc(type: u32, src: string) -> u32 {
+	id := gl.CreateShader(type)
+	cstr := strings.clone_to_cstring(src, context.temp_allocator)
+	gl.ShaderSource(id, 1, &cstr, nil)
+	gl.CompileShader(id)
+
+	res: i32
+	gl.GetShaderiv(id, gl.COMPILE_STATUS, &res)
+	if res == 0 {
+		length: i32
+		gl.GetShaderiv(id, gl.INFO_LOG_LENGTH, &length)
+		buf := make([]u8, length * size_of(u8))
+		defer delete(buf)
+		gl.GetShaderInfoLog(id, length, &length, raw_data(buf))
+		shader_type := "VERTEX_SHADER"
+		if type == gl.FRAGMENT_SHADER {
+			shader_type = "FRAGMENT_SHADER"
+		}
+		fmt.println("FAILED TO COMPILE SHADER:", shader_type)
+		fmt.println(buf)
+		gl.DeleteShader(id)
+		return 0
+	}
+
+	return id
 }
