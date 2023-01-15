@@ -7,22 +7,23 @@ import "core:runtime"
 import "core:intrinsics"
 import glm "core:math/linalg/glsl"
 
-GL_MAJOR_VERSION :: 3
-GL_MINOR_VERSION :: 3
+GL_MAJOR_VERSION :: 4
+GL_MINOR_VERSION :: 6
 
 init_glfw :: proc() -> glfw.WindowHandle {
 	if glfw.Init() == 0 {
 		os.exit(1)
 	}
+	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, GL_MAJOR_VERSION)
+	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, GL_MINOR_VERSION)
+	glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE) // compat makes vtx buf for you, core does not
+
 	window := glfw.CreateWindow(960, 540, "OpenGL", nil, nil)
 	if window == nil {
 		glfw.Terminate()
 		os.exit(1)
 	}
 	// odin ignores these..?
-	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
-	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
-	glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE) // compat makes vtx buf for you, core does not
 
 	glfw.MakeContextCurrent(window)
 	glfw.SwapInterval(1) // v-sync
