@@ -91,15 +91,29 @@ main :: proc() {
 	shader->unbind()
 	//
 	//
-	c := demos.gen__clear_color()
+	menu := demos.Demo_Menu{}
+	current_demo: demos.Demo = &menu
+	menu.current_demo = &current_demo
+	defer demos.destroy(current_demo)
+
 	for !glfw.WindowShouldClose(window) {
+		gl.ClearColor(0, 0, 0, 1)
 		clear(nil)
 		imgui_new_frame()
 		imgui.new_frame()
-		demos.on_update__clear_color(0.)
-		demos.on_render__clear_color(&c)
 		{
-			demos.on_imgui_render__clear_color(&c)
+			using demos
+
+			demos.on_update(current_demo, 0.)
+			demos.on_render(current_demo)
+
+			imgui.begin("Demos")
+			on_imgui_render(current_demo)
+			if _, ok := current_demo.(^Demo_Menu); !ok && imgui.button("<-") {
+				destroy(current_demo)
+				current_demo = &menu
+			}
+			imgui.end()
 		}
 		imgui.render()
 
