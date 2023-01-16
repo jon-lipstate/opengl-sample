@@ -12,6 +12,7 @@ import glm "core:math/linalg/glsl"
 import imgui "./vendor/odin-imgui"
 import imgl "./vendor/odin-imgui/impl/opengl"
 import imglfw "./vendor/odin-imgui/impl/glfw"
+import "./demos"
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 GL_MAJOR_VERSION :: 4
 GL_MINOR_VERSION :: 6
@@ -90,31 +91,27 @@ main :: proc() {
 	shader->unbind()
 	//
 	//
-	position1 := [2]f32{200, 200}
-	position2 := [2]f32{300, 300}
+	c := demos.gen__clear_color()
 	for !glfw.WindowShouldClose(window) {
 		clear(nil)
 		imgui_new_frame()
 		imgui.new_frame()
+		demos.on_update__clear_color(0.)
+		demos.on_render__clear_color(&c)
 		{
-			slider_window(&position1, &position2)
+			demos.on_imgui_render__clear_color(&c)
 		}
 		imgui.render()
 
 		shader->bind()
-		{
-			model := glm.mat4Translate(glm.vec3{position1.x, position1.y, 0})
-			mvp := proj * view * model
-			set_uniform_mat4f(&shader, "u_MVP", &mvp)
-			draw(nil, &va, &ib, &shader)
-		}
+		// {
+		// 	model := glm.mat4Translate(glm.vec3{position1.x, position1.y, 0})
+		// 	mvp := proj * view * model
+		// 	set_uniform_mat4f(&shader, "u_MVP", &mvp)
+		// 	draw(nil, &va, &ib, &shader)
+		// }
 		// set_uniform4f(&shader, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.}) // replaced with texColor in shader
-		{
-			model := glm.mat4Translate(glm.vec3{position2.x, position2.y, 0})
-			mvp := proj * view * model
-			set_uniform_mat4f(&shader, "u_MVP", &mvp)
-			draw(nil, &va, &ib, &shader)
-		}
+
 		imgl.imgui_render(imgui.get_draw_data(), imgui_state.opengl_state)
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
