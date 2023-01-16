@@ -13,13 +13,13 @@ import imgui "./vendor/odin-imgui"
 import imgl "./vendor/odin-imgui/impl/opengl"
 import imglfw "./vendor/odin-imgui/impl/glfw"
 import "./demos"
+import "./renderer"
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 GL_MAJOR_VERSION :: 4
 GL_MINOR_VERSION :: 6
 
 WINDOW_WIDTH :: 960
 WINDOW_HEIGHT :: 540
-SHOW_DEMO_WINDOW := true
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 // MAIN
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
@@ -54,42 +54,11 @@ main :: proc() {
 
 	gl.load_up_to(GL_MAJOR_VERSION, GL_MINOR_VERSION, glfw.gl_set_proc_address)
 	gl.ClearColor(0.25, 0.25, 0.25, 1)
+	// Callback Based Error handling, OpenGL 4.3+ Only
+	// gl.DebugMessageCallback(debug_proc_t, nil)
 
 	imgui_state := init_imgui_state(window)
 	io := imgui.get_io()
-	//
-	//
-	positions := []f32{-50., -50., 0., 0., 50., -50., 1., 0., 50., 50., 1., 1., -50., 50., 0., 1.}
-	indices := []u32{0, 1, 2, 2, 3, 0}
-
-	gl.Enable(gl.BLEND)
-	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-
-	va := make_vertex_array()
-	vb := make_vertex_buffer(positions)
-	vl := make_vertex_layout()
-	vl->push_type(f32, 2, false)
-	vl->push_type(f32, 2, false)
-	va->add_buffer(&vb, &vl)
-	ib := make_index_buffer(indices)
-	// Projection moves into unit-screen space
-	proj := glm.mat4Ortho3d(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, -1., 1.)
-	// Camera 
-	view := glm.mat4Translate(glm.vec3{0, 0, 0}) // move camera to left 100px
-	shader := make_shader_program()
-	set_uniform4f(&shader, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.})
-
-	// Callback Based Error handling, OpenGL 4.3+ Only
-	// gl.DebugMessageCallback(debug_proc_t, nil)
-	texture := make_texture("./ChernoLogo.png")
-	texture->bind()
-	set_uniform1i(&shader, "u_Texture", 0)
-
-	va->unbind() //clears the state (debug / demo use only...?):
-	vb->unbind()
-	ib->unbind()
-	shader->unbind()
-	//
 	//
 	menu := demos.Demo_Menu{}
 	current_demo: demos.Demo = &menu
@@ -98,7 +67,7 @@ main :: proc() {
 
 	for !glfw.WindowShouldClose(window) {
 		gl.ClearColor(0, 0, 0, 1)
-		clear(nil)
+		renderer.clear(nil)
 		imgui_new_frame()
 		imgui.new_frame()
 		{
@@ -108,30 +77,19 @@ main :: proc() {
 			demos.on_render(current_demo)
 
 			imgui.begin("Demos")
-			on_imgui_render(current_demo)
 			if _, ok := current_demo.(^Demo_Menu); !ok && imgui.button("<-") {
 				destroy(current_demo)
 				current_demo = &menu
 			}
+			on_imgui_render(current_demo)
 			imgui.end()
 		}
 		imgui.render()
-
-		shader->bind()
-		// {
-		// 	model := glm.mat4Translate(glm.vec3{position1.x, position1.y, 0})
-		// 	mvp := proj * view * model
-		// 	set_uniform_mat4f(&shader, "u_MVP", &mvp)
-		// 	draw(nil, &va, &ib, &shader)
-		// }
-		// set_uniform4f(&shader, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.}) // replaced with texColor in shader
 
 		imgl.imgui_render(imgui.get_draw_data(), imgui_state.opengl_state)
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
 	}
-
-	gl.DeleteProgram(shader.id)
 }
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 init_glfw :: proc() -> glfw.WindowHandle {
@@ -178,9 +136,7 @@ key_callback :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods
 			glfw.SetWindowShouldClose(window, true)
 		case glfw.KEY_TAB:
 			io := imgui.get_io()
-			if io.want_capture_keyboard == false {
-				SHOW_DEMO_WINDOW = true
-			}
+			if io.want_capture_keyboard == false {}
 		}
 	}
 }
@@ -189,8 +145,4 @@ error_callback :: proc "c" (error: i32, description: cstring) {
 	context = runtime.default_context()
 	context.logger = get_logger()
 	log.error("GLFW error:", error, description)
-}
-
-dbg_assert :: #force_inline proc(flag: bool) {
-	if !flag do intrinsics.debug_trap()
 }

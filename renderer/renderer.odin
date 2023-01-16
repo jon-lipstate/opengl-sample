@@ -1,4 +1,4 @@
-package opengl
+package renderer
 import "vendor:glfw"
 import gl "vendor:OpenGL"
 import "core:strings"
@@ -9,9 +9,6 @@ import "core:fmt"
 import "vendor:stb/image"
 import glm "core:math/linalg/glsl"
 
-//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
-vertex_shader :: string(#load("./vertex.glsl"))
-fragment_shader :: string(#load("./fragment.glsl"))
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 debug_proc_t :: proc "c" (source: u32, type: u32, id: u32, severity: u32, length: i32, message: cstring, userParam: rawptr) {
 	context = runtime.default_context()
@@ -187,12 +184,12 @@ Shader_Program :: struct {
 	bind:      proc(this: ^Shader_Program),
 	unbind:    proc(this: ^Shader_Program),
 }
-make_shader_program :: proc() -> Shader_Program {
+make_shader_program :: proc(vtx: string, frag: string) -> Shader_Program {
 	sp := Shader_Program{}
 	sp.locations = {}
 	sp.id = gl.CreateProgram()
-	vs := compile_shader(gl.VERTEX_SHADER, vertex_shader)
-	fs := compile_shader(gl.FRAGMENT_SHADER, fragment_shader)
+	vs := compile_shader(gl.VERTEX_SHADER, vtx)
+	fs := compile_shader(gl.FRAGMENT_SHADER, frag)
 	gl.AttachShader(sp.id, vs)
 	gl.AttachShader(sp.id, fs)
 	gl.LinkProgram(sp.id)
@@ -348,4 +345,8 @@ make_texture :: proc(path: string) -> Texture {
 	// 	image.image_free(tex.buf)
 	// }
 	return tex
+}
+
+dbg_assert :: #force_inline proc(flag: bool) {
+	if !flag do intrinsics.debug_trap()
 }

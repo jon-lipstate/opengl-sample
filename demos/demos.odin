@@ -20,15 +20,19 @@ on_imgui_render__menu :: proc(menu: ^Demo_Menu) {
 Demo :: union {
 	^Demo_ClearColor,
 	^Demo_Menu,
+	^Demo_Texture_2D,
 }
 Demo_Type :: enum {
 	Clear,
+	Texture2D,
 }
 gen_demo :: proc(type: Demo_Type) -> Demo {
 	res: Demo
 	switch type {
 	case .Clear:
 		res = gen__clear_color()
+	case .Texture2D:
+		res = gen__texture_2d()
 	}
 	return res
 }
@@ -41,6 +45,8 @@ destroy :: proc(demo: Demo) {
 		destroy__clear_color(d)
 	case (^Demo_Menu):
 	//nop
+	case (^Demo_Texture_2D):
+		destroy__texture_2d(d)
 	}
 }
 on_render :: proc(demo: Demo) {
@@ -50,6 +56,8 @@ on_render :: proc(demo: Demo) {
 		on_render__clear_color(d)
 	case (^Demo_Menu):
 	//nop
+	case (^Demo_Texture_2D):
+		on_render__texture_2d(d)
 	}
 
 }
@@ -60,6 +68,8 @@ on_imgui_render :: proc(demo: Demo) {
 		on_imgui_render__clear_color(d)
 	case (^Demo_Menu):
 		on_imgui_render__menu(d)
+	case (^Demo_Texture_2D):
+		on_imgui_render__texture_2d(d)
 	}
 }
 on_update :: proc(demo: Demo, timestep: f32) {
@@ -68,6 +78,7 @@ on_update :: proc(demo: Demo, timestep: f32) {
 	case (^Demo_ClearColor):
 		on_update__clear_color(d, timestep)
 	case (^Demo_Menu):
-
+	case (^Demo_Texture_2D):
+		on_update__texture_2d(d, timestep)
 	}
 }
