@@ -3,6 +3,7 @@
 scratch*
 /out
 /.vscode
+/vendor
 
 *.lib
 *.obj
@@ -11,7 +12,9 @@ scratch*
 *.dll
 *.pdb
 *.tmp
+*.zip
 
 *.hha
 *.hmi
 *.rdbg
+*.ini

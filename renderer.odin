@@ -3,6 +3,7 @@ import "vendor:glfw"
 import gl "vendor:OpenGL"
 import "core:strings"
 import "core:intrinsics"
+import "core:runtime"
 import "core:os"
 import "core:fmt"
 import "vendor:stb/image"
@@ -11,6 +12,20 @@ import glm "core:math/linalg/glsl"
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 vertex_shader :: string(#load("./vertex.glsl"))
 fragment_shader :: string(#load("./fragment.glsl"))
+//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
+debug_proc_t :: proc "c" (source: u32, type: u32, id: u32, severity: u32, length: i32, message: cstring, userParam: rawptr) {
+	context = runtime.default_context()
+	fmt.println("debug_proc_t", source, type, id, severity, length, message, userParam)
+}
+gl_clear_errors :: proc() {
+	for do if gl.GetError() == gl.NO_ERROR do return
+}
+gl_check_error :: proc() -> (code: u32, ok: bool) {
+	err_code := gl.GetError()
+	if err_code == gl.NO_ERROR {
+		return 0, true
+	} else {return err_code, false}
+}
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 // TODO: move fn ptrs to overloads (eg delete::proc{del_vtx,...})
 Vertex_Buffer_Element :: struct {
@@ -231,8 +246,9 @@ get_uniform_location :: proc(sp: ^Shader_Program, name: string) -> i32 {
 		loc = gl.GetUniformLocation(sp.id, cstr)
 		if loc == -1 {
 			fmt.println("Location not assigned (-1)", name)
+		} else {
+			sp.locations[name] = loc
 		}
-		sp.locations[name] = loc
 	}
 	// for k, v in sp.locations {
 	// 	fmt.println(k, v)

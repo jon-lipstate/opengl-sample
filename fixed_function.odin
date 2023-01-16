@@ -4,30 +4,37 @@ package opengl
 // import "core:c"
 
 // /////////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-// foreign import gl "system:Opengl32.lib"
-// foreign gl {
-// 	glViewport :: proc(x: i32, y: i32, width: i32, height: i32) ---
-// 	glClearColor :: proc(r: f32, g: f32, b: f32, a: f32) ---
-// 	glClear :: proc(mask: u32) ---
-// 	glGenTextures :: proc(id: int, handle: ^uint) ---
-// 	glBindTexture :: proc(target: uint, texture: ^uint) ---
-// 	glDeleteTextures :: proc(n: int, textures: ^uint) ---
-// 	glTexImage2D :: proc(target: uint, level: int, internalformat: int, width: int, height: int, border: int, format: uint, type: uint, pixels: rawptr) ---
-// 	glTexParameteri :: proc(target: uint, pname: uint, param: int) ---
-// 	glTexEnvi :: proc(target: uint, pname: uint, param: int) ---
-// 	glEnable :: proc(cap: uint) ---
-// 	glDisable :: proc(cap: uint) ---
-// 	glLoadIdentity :: proc() ---
-// 	glEnd :: proc() ---
-// 	glMatrixMode :: proc(mode: uint) ---
-// 	glBegin :: proc(mode: uint) ---
-// 	glTexCoord2f :: proc(s: f32, t: f32) ---
-// 	glVertex2f :: proc(x: f32, y: f32) ---
-// 	glColor4f :: proc(r: f32, g: f32, b: f32, a: f32) ---
-// 	glLoadMatrixf :: proc(m: ^f32) ---
-// 	glGetString :: proc(name: uint) -> ^u8 ---
-// 	glBlendFunc :: proc(sfactor: uint, dfactor: uint) ---
-// }
+foreign import gl "system:Opengl32.lib"
+foreign gl {
+	// 	glViewport :: proc(x: i32, y: i32, width: i32, height: i32) ---
+	// 	glClearColor :: proc(r: f32, g: f32, b: f32, a: f32) ---
+	// 	glClear :: proc(mask: u32) ---
+	// 	glGenTextures :: proc(id: int, handle: ^uint) ---
+	// 	glBindTexture :: proc(target: uint, texture: ^uint) ---
+	// 	glDeleteTextures :: proc(n: int, textures: ^uint) ---
+	// 	glTexImage2D :: proc(target: uint, level: int, internalformat: int, width: int, height: int, border: int, format: uint, type: uint, pixels: rawptr) ---
+	// 	glTexParameteri :: proc(target: uint, pname: uint, param: int) ---
+	// 	glTexEnvi :: proc(target: uint, pname: uint, param: int) ---
+	// 	glEnable :: proc(cap: uint) ---
+	// 	glDisable :: proc(cap: uint) ---
+	glLoadIdentity :: proc() ---
+	glOrtho :: proc(left: f64, right: f64, bottom: f64, top: f64, zNear: f64, zFar: f64) ---
+	// 	glEnd :: proc() ---
+	glMatrixMode :: proc(mode: uint) ---
+	glPushMatrix :: proc() ---
+	glPopMatrix :: proc() ---
+	glTexCoordPointer :: proc(size: i32, type: uint, stride: int, pointer: rawptr) ---
+	glVertexPointer :: proc(size: i32, type: uint, stride: int, pointer: rawptr) ---
+	glColorPointer :: proc(size: i32, type: uint, stride: int, pointer: rawptr) ---
+	glDrawElements :: proc(mode: uint, count: int, type: uint, indices: rawptr) ---
+	// 	glBegin :: proc(mode: uint) ---
+	// 	glTexCoord2f :: proc(s: f32, t: f32) ---
+	// 	glVertex2f :: proc(x: f32, y: f32) ---
+	// 	glColor4f :: proc(r: f32, g: f32, b: f32, a: f32) ---
+	// 	glLoadMatrixf :: proc(m: ^f32) ---
+	// 	glGetString :: proc(name: uint) -> ^u8 ---
+	// 	glBlendFunc :: proc(sfactor: uint, dfactor: uint) ---
+}
 // HGLRC :: windows.HGLRC
 // GL_COLOR_BUFFER_BIT :: 16384
 // GL_TEXTURE_2D :: 0x0DE1
