@@ -27,13 +27,14 @@ imgui_new_frame :: proc() {
 	imglfw.update_dt()
 }
 
-slider_window :: proc(x: ^f32, y: ^f32) {
+slider_window :: proc(a: ^[2]f32, b: ^[2]f32) {
 	imgui.set_next_window_pos(imgui.Vec2{WINDOW_WIDTH - 250, 10})
 	imgui.set_next_window_bg_alpha(0.2)
 	overlay_flags: imgui.Window_Flags = .NoDecoration | .AlwaysAutoResize | .NoSavedSettings | .NoFocusOnAppearing | .NoNav
 	imgui.begin("Translation", nil, overlay_flags)
-	imgui.slider_float("TX", x, 0, WINDOW_WIDTH)
-	imgui.slider_float("TY", y, 0, WINDOW_HEIGHT)
+
+	imgui.slider_float2("TA", transmute([^]f32)a, 0, WINDOW_WIDTH)
+	imgui.slider_float2("TB", transmute([^]f32)b, 0, WINDOW_HEIGHT)
 	imgui.end()
 }
 

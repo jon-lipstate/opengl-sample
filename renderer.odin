@@ -287,9 +287,8 @@ compile_shader :: proc(type: u32, src: string) -> u32 {
 Renderer :: struct {}
 
 draw :: proc(renderer: ^Renderer, va: ^Vertex_Array, ib: ^Index_Buffer, shader: ^Shader_Program) {
-	shader->bind()
-	va->bind()
-	ib->bind()
+	shader->bind() // What to do with the data
+	va->bind() // the data
 	// C uses macro, Odin manually wraps fn:
 	gl_clear_errors()
 	gl.DrawElements(gl.TRIANGLES, i32(ib.count), gl.UNSIGNED_INT, nil)

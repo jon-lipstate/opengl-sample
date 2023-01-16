@@ -58,7 +58,7 @@ main :: proc() {
 	io := imgui.get_io()
 	//
 	//
-	positions := []f32{10., 10., 0., 0., 300., 10., 1., 0., 300., 300., 1., 1., 10., 300., 0., 1.}
+	positions := []f32{-50., -50., 0., 0., 50., -50., 1., 0., 50., 50., 1., 1., -50., 50., 0., 1.}
 	indices := []u32{0, 1, 2, 2, 3, 0}
 
 	gl.Enable(gl.BLEND)
@@ -74,7 +74,7 @@ main :: proc() {
 	// Projection moves into unit-screen space
 	proj := glm.mat4Ortho3d(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, -1., 1.)
 	// Camera 
-	view := glm.mat4Translate(glm.vec3{-100, 0, 0}) // move camera to left 100px
+	view := glm.mat4Translate(glm.vec3{0, 0, 0}) // move camera to left 100px
 	shader := make_shader_program()
 	set_uniform4f(&shader, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.})
 
@@ -90,25 +90,31 @@ main :: proc() {
 	shader->unbind()
 	//
 	//
-	x: f32 = 200
-	y: f32 = 200
+	position1 := [2]f32{200, 200}
+	position2 := [2]f32{300, 300}
 	for !glfw.WindowShouldClose(window) {
 		clear(nil)
 		imgui_new_frame()
 		imgui.new_frame()
 		{
-			slider_window(&x, &y)
+			slider_window(&position1, &position2)
 		}
 		imgui.render()
 
-		// gl.Viewport(0, 0, i32(io.display_size.x), i32(io.display_size.y))
-		// gl.Scissor(0, 0, i32(io.display_size.x), i32(io.display_size.y))
-		model := glm.mat4Translate(glm.vec3{x, y, 0})
-		mvp := proj * view * model
 		shader->bind()
-		// // set_uniform4f(&shader, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.}) // replaced with texColor in shader
-		set_uniform_mat4f(&shader, "u_MVP", &mvp)
-		draw(nil, &va, &ib, &shader)
+		{
+			model := glm.mat4Translate(glm.vec3{position1.x, position1.y, 0})
+			mvp := proj * view * model
+			set_uniform_mat4f(&shader, "u_MVP", &mvp)
+			draw(nil, &va, &ib, &shader)
+		}
+		// set_uniform4f(&shader, "u_Color", [4]f32{0.2, 0.3, 0.8, 1.}) // replaced with texColor in shader
+		{
+			model := glm.mat4Translate(glm.vec3{position2.x, position2.y, 0})
+			mvp := proj * view * model
+			set_uniform_mat4f(&shader, "u_MVP", &mvp)
+			draw(nil, &va, &ib, &shader)
+		}
 		imgl.imgui_render(imgui.get_draw_data(), imgui_state.opengl_state)
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
